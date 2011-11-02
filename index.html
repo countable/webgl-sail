@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 	<head>
-		<title>three.js canvas - geometry - birds</title>
+		<title>three.js canvas - geometry - boat_models</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<style> 
@@ -26,7 +26,7 @@
 	<body>
 
 		<div id="container"></div>
-		<div id="info"><a href="http://github.com/mrdoob/three.js" target="_blank">three.js</a> - birds demo</div>
+		<div id="info"><a href="http://github.com/mrdoob/three.js" target="_blank">three.js</a> - boat_models demo</div>
 
 		<script src="Three.js"></script>
 		<script src="boat.js"></script>
@@ -38,18 +38,15 @@
 
 			// Based on http://www.openprocessing.org/visuals/?visualID=6910
       
-			var Boid = function() {
+			var Ship = function() {
 
 				var vector = new THREE.Vector3(),
-				_acceleration, _width = 100, _height = 100, _depth = 100, _goal, _neighborhoodRadius = 20,
-        _angle,
+				_width = 100, _height = 100, _depth = 100, _goal, _neighborhoodRadius = 20,
 				_maxSpeed = 4, _maxSteerForce = 0.1, _avoidWalls = false;
 
 				this.position = new THREE.Vector3();
 				this.velocity = new THREE.Vector3();
-				_acceleration = new THREE.Vector3();
-        _direction = new THREE.Vector3();
-        _angle = 0;
+        this.angle = 0;
         this.speed = 0;
         
 				this.setGoal = function ( target ) {
@@ -67,38 +64,39 @@
 				this.setWorldSize = function ( width, height, depth ) {
 
 					_width = width;
-					_height = height;vector
+					_height = height;
 					_depth = depth;
 
 				};
 
-				this.run = function ( boids ) {
-
+				this.run = function ( boat ) {
           this.checkBounds();
-
           this.move();
-
 				};
         
         this.getAngle = function(){
-          return _angle;
+          return this.angle;
         };
         
         this.speedup = function (delta) {
-          if(speed<=0)
           this.speed += delta;
+          if(this.speed < 0) {
+            this.speed = 0;
+          }
+          if (this.speed>4) { this.speed =4}
         };
         
         this.turn = function (delta) {
-          _angle += delta;
-          while (_angle > 2*Math.PI) _angle -= Math.PI;
-          while (_angle < 0) _angle += Math.PI;
+          this.angle += delta;
+          while (this.angle > 2*Math.PI) this.angle -= 2*Math.PI;
+          while (this.angle < 0) this.angle += 2*Math.PI;
         };
         
 				this.move = function () {
-          this.velocity.x = Math.cos(_angle) * this.speed;
-          this.velocity.z =  Math.sin(_angle) * this.speed;
+          this.velocity.x = Math.cos(this.angle) * this.speed;
+          this.velocity.z =  Math.sin(this.angle) * this.speed;
 					this.position.addSelf( this.velocity );
+          console.log(this.position.x, this.position.y, this.position.z);
 				};
 
 				this.checkBounds = function () {
@@ -123,10 +121,10 @@
 			SCREEN_HEIGHT_HALF = SCREEN_HEIGHT / 2;
 
 			var camera, scene, renderer,
-			birds, bird;
+			boat_models, boat_model;
 
-			var boid, boids;
-
+			var boat;
+      var boat_model;
 			var stats;
 
 			init();
@@ -138,97 +136,73 @@
 				camera.position.x = 0;
 				camera.position.y = 100;
 				camera.position.z = 100;
-        origin = new THREE.Vector3(0,0,0);
+        var origin = new THREE.Vector3(0,0,0);
         camera.lookAt(origin);
 
 				scene = new THREE.Scene();
 
-				birds = [];
-				boids = [];
+				scene.add( new THREE.AmbientLight( 0x00020 ) );
+        var directionalLight = new THREE.DirectionalLight(0xffffff);
+        directionalLight.position.set(1, 1, 1).normalize();
+        this.scene.add(directionalLight);
+        
+        plane = new THREE.Mesh( new THREE.PlaneGeometry( 200, 200 ), 
+          new THREE.MeshLambertMaterial( { color: 0xffffff, shading: THREE.FlatShading } ) );
+				plane.rotation.x = - 90 * ( Math.PI / 180 );
+				plane.overdraw = true;
+				scene.add( plane );
+        
 
-				for ( var i = 0; i < 1; i ++ ) {
 
-					boid = boids[ i ] = new Boid();
-					boid.position.x = 0;
-					boid.position.y = 0;
-					boid.position.z = 0;
-					boid.velocity.x = 1;
-					boid.velocity.y = 0;
-					boid.velocity.z = 0;
-					boid.setAvoidWalls( true );
-					boid.setWorldSize( 100, 100, 100 );
+        boat = new Ship();
+        boat.position.x = 0;
+        boat.position.y = 0;
+        boat.position.z = 0;
+        boat.setAvoidWalls( true );
+        boat.setWorldSize( 100, 100, 100 );
 
-					bird = birds[ i ] = new THREE.Mesh( new Boat(), new THREE.MeshBasicMaterial( { color:Math.random() * 0xffffff } ) );
-					bird.phase = Math.floor( Math.random() * 62.83 );
-					bird.position = boids[ i ].position;
-					bird.doubleSided = true;
-					bird.scale.x = bird.scale.y = bird.scale.z = 5;
-					scene.add( bird );
+        boat_model = boat_model = new THREE.Mesh( new Boat(),
+          new THREE.MeshLambertMaterial( { color: 0xffffff, shading: THREE.FlatShading } ) );
 
-				}
+        boat_model.position = boat.position;
+        boat_model.doubleSided = true;
+        boat_model.scale.x = boat_model.scale.y = boat_model.scale.z = 5;
+        scene.add( boat_model );
+
 
 				renderer = new THREE.CanvasRenderer();
 				// renderer.autoClear = false;
 				renderer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
-
 				document.addEventListener( 'keydown', onDocumentMouseMove, false );
 				document.body.appendChild( renderer.domElement );
-
-				stats = new Stats();
-				stats.domElement.style.position = 'absolute';
-				stats.domElement.style.left = '0px';
-				stats.domElement.style.top = '0px';
-
-				document.getElementById( 'container' ).appendChild(stats.domElement);
-
 			}
 
 			function onDocumentMouseMove( event ) {
         if (event.which == 38) {
-          boids[0].speedup(1); 
+          boat.speedup(1); 
         }
         if (event.which == 40) {
-          boids[0].speedup(-1); 
+          boat.speedup(-1); 
         }
         if (event.which == 37) {
-          boids[0].turn(-0.2);
+          boat.turn(-0.2);
         }
         if (event.which == 39) {
-          boids[0].turn(0.2);
+          boat.turn(0.2);
         }
 			}
 
-			//
-
 			function animate() {
-
 				requestAnimationFrame( animate );
-
 				render();
-				stats.update();
-
 			}
 
 			function render() {
 
-				for ( var i = 0, il = birds.length; i < il; i++ ) {
-
-					boid = boids[ i ];
-					boid.run( boids );
-
-					bird = birds[ i ];
-
-					color = bird.materials[ 0 ].color;
-					color.r = color.g = color.b = ( 500 - bird.position.z ) / 1000;
-					bird.rotation.y = -boid.getAngle()+Math.PI/2;
-          console.log(bird.rotation.y);
-					//bird.rotation.z = Math.asin( boid.velocity.y / boid.velocity.length() );
-
-					//bird.phase = ( bird.phase + ( Math.max( 0, bird.rotation.z ) + 0.1 )  ) % 62.83;
-					//bird.geometry.vertices[ 5 ].position.y = bird.geometry.vertices[ 4 ].position.y = Math.sin( bird.phase ) * 5;
-
-				}
-
+        boat.run( boat );
+        color = boat_model.materials[ 0 ].color;
+        color.r = color.g = color.b = ( 500 - boat_model.position.z ) / 1000;
+        boat_model.rotation.y = -boat.getAngle()+Math.PI/2;
 				renderer.render( scene, camera );
 
 			}
