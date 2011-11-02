@@ -1,213 +1,48 @@
 <!doctype html>
 <html lang="en">
-	<head>
-		<title>three.js canvas - geometry - boat_models</title>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<style> 
-			body {
-				color: #808080;
-				font-family:Monospace;
-				font-size:13px;
-				text-align:center;
+    <head>
+        <title>WebGL Sailing Simulation by David B & Clark V.O.</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <style> 
+            body {
+                color: #808080;
+                font-family:Monospace;
+                font-size:13px;
+                text-align:center;
 
-				background-color: #ffffff;
-				margin: 0px;
-				overflow: hidden;
-			}
+                background-color: #ffffff;
+                margin: 0px;
+                overflow: hidden;
+            }
 
-			#info {
-				position: absolute;
-				top: 0px; width: 100%;
-				padding: 5px;
-			}
-                </style>
-	</head>
-	<body>
+            #info {
+                position: absolute;
+                top: 0px; width: 100%;
+                padding: 5px;
+            }
+            #infobar {
+                color: #000000;
+                position: absolute;
+                font-size: 13px;
+                left: 950px;
+                top: 20px
+            }    
+        </style>
+    </head>
+    <body>
 
-		<div id="container"></div>
-		<div id="info"><a href="http://github.com/mrdoob/three.js" target="_blank">three.js</a> - boat_models demo</div>
-
-		<script src="Three.js"></script>
-		<script src="boat.js"></script>
-
-		<script src="RequestAnimationFrame.js"></script>
-		<script src="Stats.js"></script>
-
-		<script>
-
-			// Based on http://www.openprocessing.org/visuals/?visualID=6910
-      
-			var Ship = function() {
-
-				var vector = new THREE.Vector3(),
-				_width = 100, _height = 100, _depth = 100, _goal, _neighborhoodRadius = 20,
-				_maxSpeed = 4, _maxSteerForce = 0.1, _avoidWalls = false;
-
-				this.position = new THREE.Vector3();
-				this.velocity = new THREE.Vector3();
-        this.angle = 0;
-        this.speed = 0;
+        <div id="container"></div>
+        <div id="info"> Welcome to my WebGL sailing Demo! </div>
         
-				this.setGoal = function ( target ) {
+        <div id = "infobar" > </div>
 
-					_goal = target;
+        <script src="Three.js"></script>
+        <script src="boat.js"></script>
+        <script src="RequestAnimationFrame.js"></script>
+        <script src="Stats.js"></script>
+        <script src="physics.js"></script>
+        <script src="main.js"></script>
 
-				};
-
-				this.setAvoidWalls = function ( value ) {
-
-					_avoidWalls = value;
-
-				};
-
-				this.setWorldSize = function ( width, height, depth ) {
-
-					_width = width;
-					_height = height;
-					_depth = depth;
-
-				};
-
-				this.run = function ( boat ) {
-          this.checkBounds();
-          this.move();
-				};
-        
-        this.getAngle = function(){
-          return this.angle;
-        };
-        
-        this.speedup = function (delta) {
-          this.speed += delta;
-          if(this.speed < 0) {
-            this.speed = 0;
-          }
-          if (this.speed>4) { this.speed =4}
-        };
-        
-        this.turn = function (delta) {
-          this.angle += delta;
-          while (this.angle > 2*Math.PI) this.angle -= 2*Math.PI;
-          while (this.angle < 0) this.angle += 2*Math.PI;
-        };
-        
-				this.move = function () {
-          this.velocity.x = Math.cos(this.angle) * this.speed;
-          this.velocity.z =  Math.sin(this.angle) * this.speed;
-					this.position.addSelf( this.velocity );
-          console.log(this.position.x, this.position.y, this.position.z);
-				};
-
-				this.checkBounds = function () {
-
-					if ( this.position.x >   _width ) this.position.x = - _width;
-					if ( this.position.x < - _width ) this.position.x =   _width;
-					if ( this.position.y >   _height ) this.position.y = - _height;
-					if ( this.position.y < - _height ) this.position.y =  _height;
-					if ( this.position.z >  _depth ) this.position.z = - _depth;
-					if ( this.position.z < - _depth ) this.position.z =  _depth;
-
-				};
-			}
-
-		</script>
-
-		<script>
-
-			var SCREEN_WIDTH = window.innerWidth,
-			SCREEN_HEIGHT = window.innerHeight,
-			SCREEN_WIDTH_HALF = SCREEN_WIDTH  / 2,
-			SCREEN_HEIGHT_HALF = SCREEN_HEIGHT / 2;
-
-			var camera, scene, renderer,
-			boat_models, boat_model;
-
-			var boat;
-      var boat_model;
-			var stats;
-
-			init();
-			animate();
-
-			function init() {
-
-				camera = new THREE.PerspectiveCamera( 75, SCREEN_WIDTH / SCREEN_HEIGHT, 1, 10000 );
-				camera.position.x = 0;
-				camera.position.y = 100;
-				camera.position.z = 100;
-        var origin = new THREE.Vector3(0,0,0);
-        camera.lookAt(origin);
-
-				scene = new THREE.Scene();
-
-				scene.add( new THREE.AmbientLight( 0x00020 ) );
-        var directionalLight = new THREE.DirectionalLight(0xffffff);
-        directionalLight.position.set(1, 1, 1).normalize();
-        this.scene.add(directionalLight);
-        
-        plane = new THREE.Mesh( new THREE.PlaneGeometry( 200, 200 ), 
-          new THREE.MeshLambertMaterial( { color: 0xffffff, shading: THREE.FlatShading } ) );
-				plane.rotation.x = - 90 * ( Math.PI / 180 );
-				plane.overdraw = true;
-				scene.add( plane );
-        
-
-
-        boat = new Ship();
-        boat.position.x = 0;
-        boat.position.y = 0;
-        boat.position.z = 0;
-        boat.setAvoidWalls( true );
-        boat.setWorldSize( 100, 100, 100 );
-
-        boat_model = boat_model = new THREE.Mesh( new Boat(),
-          new THREE.MeshLambertMaterial( { color: 0xffffff, shading: THREE.FlatShading } ) );
-
-        boat_model.position = boat.position;
-        boat_model.doubleSided = true;
-        boat_model.scale.x = boat_model.scale.y = boat_model.scale.z = 5;
-        scene.add( boat_model );
-
-
-				renderer = new THREE.CanvasRenderer();
-				// renderer.autoClear = false;
-				renderer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
-				document.addEventListener( 'keydown', onDocumentMouseMove, false );
-				document.body.appendChild( renderer.domElement );
-			}
-
-			function onDocumentMouseMove( event ) {
-        if (event.which == 38) {
-          boat.speedup(1); 
-        }
-        if (event.which == 40) {
-          boat.speedup(-1); 
-        }
-        if (event.which == 37) {
-          boat.turn(-0.2);
-        }
-        if (event.which == 39) {
-          boat.turn(0.2);
-        }
-			}
-
-			function animate() {
-				requestAnimationFrame( animate );
-				render();
-			}
-
-			function render() {
-
-        boat.run( boat );
-        color = boat_model.materials[ 0 ].color;
-        color.r = color.g = color.b = ( 500 - boat_model.position.z ) / 1000;
-        boat_model.rotation.y = -boat.getAngle()+Math.PI/2;
-				renderer.render( scene, camera );
-
-			}
-
-		</script>
-
-	</body>
+    </body>
 </html>
