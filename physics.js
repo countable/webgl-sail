@@ -1,3 +1,8 @@
+/*
+consider the discussion here:
+http://www.real-world-physics-problems.com/physics-of-sailing.html
+*/
+
 var pi = Math.PI;
 Physics = new function () {
     var that = this,
