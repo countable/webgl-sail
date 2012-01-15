@@ -1,6 +1,6 @@
 
 var Wind = function(x,z) {
-    this.direction = new THREE.Vector3(x,0,z);
+    this.direction = new THREE.Vector3(x,pi/2,z);
     this.getAngle = function () {
         return Math.atan2(this.direction.z, this.direction.x);
     }
@@ -8,6 +8,49 @@ var Wind = function(x,z) {
         return Math.sqrt(Math.pow(this.direction.x,2) + Math.pow(this.direction.z, 2));
     }   
 }
+
+var Flag = function () {
+
+	var scope = this;
+    scope.vertices = [];
+    scope.faces = [];
+
+	THREE.Geometry.call( this );
+
+	/*
+	v(   0,   15.25,   2 );
+	v(   0,   15,  2 );
+	v(   0,   15,   0 );
+	v(   0,   15.25,  0);
+	v(   0,   15.125, 2.25);
+	*/
+	v(   0,   0.25,   2 );
+	v(   0,   0,  2 );
+	v(   0,   0,   0 );
+	v(   0,   0.25,  0);
+	v(   0,   0.125, 2.25);
+	
+	f3( 2, 3, 0 );
+	f3( 0, 1, 2 );
+	f3( 1, 0, 4 );
+	console.log (this);
+	this.computeCentroids();
+	this.computeFaceNormals();
+
+	function v( x, y, z ) {
+
+		scope.vertices.push( new THREE.Vertex( new THREE.Vector3( x, y, z ) ) );
+
+	}
+
+	function f3( a, b, c ) {
+
+		scope.faces.push( new THREE.Face3( a, b, c ) );
+
+	}
+}
+Flag.prototype = new THREE.Geometry();
+Flag.prototype.constructor = Flag;
 
 var Sail = function () {
 
@@ -17,9 +60,11 @@ var Sail = function () {
 
 	THREE.Geometry.call( this );
 
-	v(   0,   2.5,   1 );
+	v(   0,   15,  0 );
 	v(   0,   2.5,   -5 );
-	v(   0,   15,  1 );
+	v(   0,   2.5,   0 );
+	
+	
 
 	f3( 0, 1, 2 );
 
@@ -100,35 +145,73 @@ var Ship = function () {
     this.velocity = new THREE.Vector3(0,0,0);
     this.rotation = new THREE.Vector3(0,0,0);
 
-    _acceleration = new THREE.Vector3();
-    _direction = new THREE.Vector3();
-    awAngle = new THREE.Vector3();
-    _sailAngle = 0;
-    _boatAngle = 0;
+    var _acceleration = new THREE.Vector3(),
+    _direction = new THREE.Vector3(),
+    awAngle = new THREE.Vector3(),
+     _sailAngle = 0,
+	_boatAngle = 0,
+	_boom=5,//boom length
+	_sheet = 0; // a number from 0 to 1
+	
     this.speed = 0;
-    that = this;
-
+    var that = this;
+	
+	this.get_apparent_wind = function () {
+		return new THREE.Vector3(
+			wind.direction.x - this.velocity.x, 0, wind.direction.y - this.velocity.y
+		);
+	
+	}
     this.set_up_model = function () { 
         
-        this.mesh = new THREE.Mesh(new Boat(), new THREE.MeshLambertMaterial( { color: 0xffffff, shading: THREE.FlatShading } ) );
+        this.mesh = new THREE.Mesh(new Boat(), new THREE.MeshLambertMaterial( { color: 0xff000, shading: THREE.FlatShading } ) );
         this.mesh.position.x = 0;
         this.mesh.position.y = 0;
         this.mesh.position.z = 50;
+		this.mesh.add(new THREE.Axes());
         this.mesh.rotation.y = pi;
-    
+		
         this.mesh.scale.x = this.mesh.scale.y = this.mesh.scale.z = 5;
     
-    }   
+    };   
     
     this.getBoatAngle = function () {
         return _boatAngle;
-    }
-
-    this.run = function () {
-        this.checkBounds();
-        this.move();
     };
 
+	this.getSailAngle = function () {
+		 
+		var  m=_boom/2, //boom pulley position
+			y=1, // boom height
+			L=_boom*2; //sheet rope length
+		
+		return Math.atan( ( Math.sqrt(
+		
+			Math.pow( 
+				(L - _sheet*3 ) / ( 2+ ( (_boom - m) / _boom ) ),2
+			) - Math.pow(y,2)
+			
+		) / _boom ) );
+		
+	};
+	
+	this.getSailDirection = function(){
+		var theta = this.getSailAngle();
+		return new THREE.Vector3(Math.acos(theta)*_boom , Math.asin(theta)*_boom , 0); 
+	};
+	
+    this.run = function () {
+        //this.checkBounds();
+        this.move();
+    };
+	
+	this.debug = function(extras) {
+		s = ''
+		s = 'SHEET:'+_sheet+" Velocity VECTOR: ("+this.velocity.x+","+this.velocity.z+")"+
+			" sail angle:"+this.getSailAngle();
+		document.getElementById('debug').innerHTML=s;
+	};
+	
     this.speedup = function (delta) {
         //   while(that.POFS != "Irons") {
         this.speed += delta;
@@ -152,9 +235,10 @@ var Ship = function () {
     };
 
     this.sheet = function (delta) {
-        while (_sailAngle <= pi / 2 && _sailAngle >= pi / 12) {
-            _sailAngle = that.getRot(_sailAngle + delta)
-        }
+	    if (!delta) return _sheet;
+        _sheet += delta;
+		if(_sheet>1) _sheet = 1
+		if(_sheet<0) _sheet = 0
     };
     this.move = function () {
 
@@ -165,7 +249,7 @@ var Ship = function () {
         this.velocity.x = Math.cos(_boatAngle) * this.speed;
         this.velocity.z = Math.sin(_boatAngle) * this.speed;
         //TODO ADD WIND VELOCITY!
-        console.log ('moving',this.velocity.x,this.velocity.z);
+       
         this.position.addSelf(this.velocity);
         // }
     };
@@ -178,7 +262,7 @@ var Ship = function () {
     };
 }
 
-var camera, scene, renderer, boat, windvale, ship, wind, sail;
+var camera, scene, renderer, boat, ship, wind, sail, flag;
 
 var stats;
 
@@ -196,21 +280,23 @@ function init() {
     scene = new THREE.Scene();
     
     //Lights
-    scene.add( new THREE.AmbientLight( 0x00020 ) );
+    scene.add( new THREE.AmbientLight( 0x888888 ) );
     var directionalLight = new THREE.DirectionalLight( 0xffffff );
     directionalLight.position.set(1, 1, 1).normalize();
     this.scene.add( directionalLight );
     
+	//Fog
+	
+	scene.fog = new THREE.FogExp2( 0xdddddd, 0.005 );
+
     //Models
-    windvale = new THREE.Mesh(new THREE.CubeGeometry(3, 3, 20), new THREE.MeshBasicMaterial({
-        color: 0xff0000e,
-        wireframe: true
-    }));
-    scene.add(windvale);
+   
+   
 
     ship = new Ship();
     ship.set_up_model();
     scene.add( ship.mesh );
+	ship.mesh.matrix.setRotationFromEuler(ship.mesh.rotation);
 
     sail = new THREE.Mesh(new Sail(), new THREE.MeshLambertMaterial( { color: 0xffffff, shading: THREE.FlatShading } ) );
     sail.position.x = 0;
@@ -221,15 +307,29 @@ function init() {
     sail.scale.x = sail.scale.y = sail.scale.z = 5;
     sail.doubleSided = true;
     scene.add( sail );
+	
+	
+    flag = new THREE.Mesh(new Flag(), new THREE.MeshLambertMaterial( { color: 0xff0000, shading: THREE.FlatShading } ) );
+	flag.add(new THREE.Axes());
+	ship.mesh.matrix.setRotationFromEuler(ship.mesh.rotation);
+    flag.position.x = 0;
+    flag.position.y = 0;
+    flag.position.z = 50;
+    flag.rotation.y = pi;
+
+    flag.scale.x = flag.scale.y = flag.scale.z = 5;
+    flag.doubleSided = true;
+    scene.add( flag );
 
     wind = new Wind(1,0);
-   
+	console.log(wind.direction);
+    console.log(ship.mesh.rotation);
     ocean = new THREE.Mesh( new THREE.PlaneGeometry( 200, 200 ),
         new THREE.MeshLambertMaterial( { color: 0xffffff, shading: THREE.FlatShading } ) );
     ocean.rotation.x = -pi / 2 ;
     //scene.add( ocean );
 
-    renderer = new THREE.WebGLRenderer({antialias: true});
+    renderer = new THREE.WebGLRenderer({antialias: true, clearColor:0xdddddd, clearAlpha: 1});
     // renderer.autoClear = false;
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.addEventListener('keydown', onKey, false);
@@ -247,11 +347,11 @@ function return2br(dataStr) {
 function onKey(event) {
     if (event.which == 38) {
         ship.sheet(pi / 12)
-        ship.speedup(1);
+        //ship.speedup(1);
     }
     if (event.which == 40) {
-        ship.sheet(-pi / 12)
-        ship.speedup(-0.3);
+        ship.sheet(-pi / 24)
+        //ship.speedup(-0.3);
     }
     if (event.which == 37) {
         ship.turn(-0.05);
@@ -270,6 +370,7 @@ function animate() {
 function render() {
     //pofs = Utils.angle2pofs(wind.getAngle(), ship.getBoatAngle());
 
+	
     ship.mesh.rotation.y = -ship.getBoatAngle() + pi / 2;
     ship.mesh.position.x = ship.position.x;
     ship.mesh.position.z = ship.position.z;
@@ -277,16 +378,24 @@ function render() {
     sail.position.x = ship.mesh.position.x;
     sail.position.y = ship.mesh.position.y;
     sail.position.z = ship.mesh.position.z;
-    sail.rotation = ship.mesh.rotation;
-    
+	
+    sail.rotation.x = ship.mesh.rotation.x;
+	sail.rotation.y = ship.mesh.rotation.y+Math.sin(ship.sheet());
+	sail.rotation.z = ship.mesh.rotation.z;
+	
+    flag.position.x = ship.mesh.position.x;
+    flag.position.y = ship.mesh.position.y+5*15;
+    flag.position.z = ship.mesh.position.z;
+	
+    flag.rotation = wind.direction;
+	
     camera.position.x = ship.mesh.position.x;
     camera.position.z = 100 //ship.mesh.position.z;
     camera.position.y =100
     camera.lookAt(ship.mesh.position);
 
     ship.run();
-    color = ship.mesh.materials[0].color;
-    color.r = color.g = color.b = (500 - ship.mesh.position.z) / 1000;
+	ship.debug();
 
     renderer.render(scene, camera);
 }

@@ -25,13 +25,14 @@ Physics = new function () {
         return va_wind;
     }
     //Finds force of foil :
-    //Where F is lift vector of foil, L is total lift force, Fd is drag vector of sail, Bd is drag of boat (not considering foil drag),p is density of air, v is velocity of APPARENT wind, m is mass of boat
-    this.a_foil = function (type, F, p, A, C, v) {
+    //Where F is lift vector of foil, L is total lift force, Fd is drag vector of sail,
+	//Bd is drag of boat (not considering foil drag),p is density of air, v is velocity of APPARENT wind, m is mass of boat
+    this.a_foil = function (type, p, A, C, v) {
         var D, L;
-        if (type == "Aero") {
+        //if (type == "Aero") {
             L.z = 1 / 2(pa * A * C * (v) ^ 2);
             A.x = -1 / 2(pa * A * C * (v) ^ 2);
-        } //else if (type == "Hydro") {
+         //else if (type == "Hydro") {
         //L
         //}		
     };
